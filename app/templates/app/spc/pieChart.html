@@ -1,0 +1,272 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="{% static 'fontawesome-free-6.7.2-web/css/all.min.css' %}">
+    <script src="{% static 'jquery-jquery-f79d5f1/dist/jquery.min.js' %}"></script>
+  <!-- Add XLSX library for Excel conversion -->
+
+   <script src="{% static 'js-xlsx-master/dist/xlsx.full.min.js' %}"></script>
+
+   <!-- Add jsPDF library for PDF conversion -->
+   
+   <script src="{% static 'parallax-jsPDF-57cbe94/dist/jspdf.umd.min.js' %}"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pie Chart</title>
+</head>
+<style>
+      .container {
+            width: 100%;
+           height: 90vh;
+            margin: auto;
+            border: 2px solid black;
+            margin-top: 0px;
+        }
+#heading{
+    text-align: center;
+    font-weight: bold;
+    font-size: 20px;
+    background-color: blue;
+    color: white;
+    height: 25px;
+    margin-top: 0px;
+
+}
+    #value_list {
+    background-color: rgb(250, 181, 181);
+    height: 500px; /* increased height */
+    width: 600px;  /* increased width */
+    margin-left: 40%; /* adjust according to new width */
+    margin-top: -500px; /* adjust to align with image */
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(10, 1fr);
+    gap: 10px; /* adds space between grid items */
+    padding: 10px;
+    font-size: 14px; /* bigger text */
+}
+
+.item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    border: 1px solid #000;
+    height: 50px; /* increase height */
+    font-size: 1vw; /* increase font size */
+    font-weight: bold;
+}
+
+#prevButton{
+    width: 80px;
+    height: 35px;
+    margin-top: -35px;
+    float: right;
+    background-color: red;
+    color: white;
+    font-weight: bold;
+}
+#mail_btn {
+    width: 150px;
+    height: 35px;
+    margin-top: -35px;
+    background-color: green;
+    color: white;
+    font-weight: bold;
+    margin-left: 500px;
+}
+
+#pdf_btn {
+    width: 150px;
+    height: 35px;
+    background-color: red;
+    color: white;
+    font-weight: bold;
+    float: left;
+}
+#popupMessage{
+    display: none;
+    position: fixed; 
+    top: 20px;
+    width: 300px;
+    height: 70px;
+    left: 40%;
+    text-align: center;
+    font-weight: bold;
+    font-size: 20px;
+    transform: translateX(-50%);
+    background-color: yellow; 
+    color: black; 
+    border: 1px solid black ; 
+    padding: 10px;
+    z-index: 1000;
+}
+
+.container-1{
+    height: 35px;
+    background-color: blue;
+}
+
+
+#loading_spinner {
+    position: fixed;
+    top: 50%;
+    left: 60%;
+    transform: translate(-50%, -50%);
+    font-size: 5vw;
+    color: #022244;
+    z-index: 9999; /* Ensure spinner appears on top */
+}
+
+.fa-spinner {
+    margin-top: 10%;
+    margin-right: 20%; /* Add space between spinner and text */
+}
+
+</style>
+<body>
+    <div id="loading_spinner" style="display: none;">
+        <i class="fas fa-spinner fa-spin"></i> 
+        <div style="text-align: center; margin-left: -120px; font-size: 50px; font-weight: bold; color: rgb(128, 36, 0);">
+            Please wait a moment...
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="container-1">
+            <div id="heading">PIE CHART</div>
+            <form id="exportForm" method="post" action="{% url 'pieChart' %}" style="margin-top:-25px ;">
+                {% csrf_token %}
+                <div class="button-container">
+                    <!-- Send Mail Button (Left Side) -->
+                    <button type="submit" class="no-pdf" onclick="hideDropdown()" name="export_type" value="send_mail" id="mail_btn">Send Mail</button>
+                    
+                    <!-- Email Selection Dropdown -->
+                    <label for="email" class="no-pdf"></label>
+                    <select name="recipient_email" class="no-pdf" id="recipientEmail" style="background-color: yellow; height: 35px; ">
+                        <option class="no-pdf" value="{{ email_1 }}">{{ email_1 }}</option>
+                        <option class="no-pdf" value="{{ email_2 }}">{{ email_2 }}</option>
+                    </select>
+                
+                    <!-- PDF Conversion Button (Right Side) -->
+                    <button type="submit" name="export_type" value="pdf" id="pdf_btn" class="no-pdf">PDF CONVERSION</button>
+                </div>
+                
+            </form>
+            <div><button id="prevButton" class="no-pdf" >BACK</button></div>  
+        </div>
+
+     <!-- Add this in your consolidateSrNo.html -->
+<div id="popupMessage" class="no-pdf"></div>
+
+        <script>
+
+
+$(document).ready(function () {
+        $("#pdf_btn").click(function () {
+            $("#loading_spinner").show(); // Show the spinner
+        });
+
+        $("#mail_btn").click(function () {
+            $("#loading_spinner").show(); // Show the spinner
+        });
+    });
+
+        // Get the success message from the context if it exists
+        var successMessage = "{{ success_message|escapejs }}";  // Ensure safe rendering of message
+
+        if (successMessage) {
+        // If there is a success message, display the popup
+        var messageDiv = document.getElementById('popupMessage');
+        messageDiv.innerHTML = `<div>${successMessage}</div>`;  // Set the message content
+        messageDiv.style.display = 'block';  // Make the popup visible
+
+        // Optionally, hide the popup after 5 seconds
+        setTimeout(function() {
+            messageDiv.style.display = 'none';  // Hide the popup after 5 seconds
+        }, 3000);  // Adjust the time duration as needed
+        }
+        </script>
+
+
+    {% if no_results %}
+        <p><h1 style="color: red;">No Data Found</h1></p>
+    {% else %}
+    <img src="data:image/png;base64,{{ pie_chart }}" alt="Pie Chart">
+   
+
+    <div id="value_list">
+        {% for data in pie_chart_values %}
+        <div class="item">Part Model:{{ data.part_model }}</div>
+        <div class="item">Current date:{{ data.current_date_time }}</div>
+        <div class="item">Parameter Name:{{ data.parameter_name }}</div>
+        <div class="item">Shift:{{ data.shift }}</div>
+        <div class="item">Machine:{{ data.machine }}</div>
+        <div class="item">Vendor Code:{{ data.vendor_code }}</div>
+        <div class="item">Operator:{{ data.operator }}</div>
+        <div class="item">From date:{{ data.formatted_from_date }}</div>
+        <div class="item">To date:{{ data.formatted_to_date }}</div>
+        {% endfor %}
+        <div class="item">Checked:{{total_count}}</div>
+        <div class="item">Accepted:{{accept_count}} </div>
+        <div class="item">Reject:{{reject_count}} </div>
+        <div class="item">Rework:{{rework_count}} </div>
+       
+        <!-- <div class="item">Item 10</div> -->
+    </div>
+    {% endif %}
+    
+    </div>
+    <script>
+        document.getElementById('prevButton').addEventListener('click', function() {
+        // Redirect to the report page
+        window.location.href = '/spc/'; // Replace 'report_page.html' with the actual URL of your report page
+    });
+    </script>
+</body>
+</html>
+
+
+
+<style>
+/* Make everything non-selectable by default */
+* {
+    -webkit-user-select: none !important; 
+    -moz-user-select: none !important;    
+    -ms-user-select: none !important;     
+    user-select: none !important;         
+    -webkit-user-drag: none !important;   
+    -webkit-tap-highlight-color: transparent !important; 
+    outline: none !important;
+}
+
+/* Keep focus styles removed */
+*:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+*:active {
+    outline: none !important;
+    box-shadow: none !important;
+}
+</style>
+
+<script>
+// Helper: check if event target is one of the allowed inputs
+function isEditableArea(target) {
+     const allowedIds = ['card','com_port','baud_rate','parity','stopbit','recipientEmail','databit'];
+    return allowedIds.includes(target.id);
+}
+
+// Disable selection / dragging except allowed areas
+document.addEventListener('selectstart', e => { if (!isEditableArea(e.target)) e.preventDefault(); });
+document.addEventListener('mousedown', e => { if (!isEditableArea(e.target)) e.preventDefault(); });
+document.addEventListener('mouseup', e => { if (!isEditableArea(e.target)) e.preventDefault(); });
+document.addEventListener('dragstart', e => { if (!isEditableArea(e.target)) e.preventDefault(); });
+document.addEventListener('contextmenu', e => { if (!isEditableArea(e.target)) e.preventDefault(); });
+</script>
